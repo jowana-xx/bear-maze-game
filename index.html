@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Bear Maze</title>
+  <style>
+    * { touch-action: manipulation; }
+    body {
+      margin: 0;
+      background: black;
+      color: white;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      overflow: hidden;
+      font-family: system-ui, sans-serif;
+    }
+    #game-wrapper {
+      position: relative;
+      width: 300px;
+      height: 300px;
+    }
+    canvas {
+      width: 300px;
+      height: 300px;
+      background: black;
+      border: 2px solid white;
+    }
+    #message {
+      position: absolute;
+      inset: 0;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      background: rgba(0,0,0,0.8);
+      padding: 20px;
+      font-size: 16px;
+      line-height: 1.5;
+    }
+    #controls {
+      margin-top: 15px;
+      display: grid;
+      grid-template-columns: repeat(3, 60px);
+      grid-template-rows: repeat(3, 60px);
+      gap: 6px;
+    }
+    button {
+      font-size: 20px;
+      background: #222;
+      color: white;
+      border: 1px solid white;
+      border-radius: 8px;
+    }
+    button:active { background: #444; }
+  </style>
+</head>
+<body>
+
+<div id="game-wrapper">
+  <canvas id="maze" width="300" height="300"></canvas>
+  <div id="message">
+    <div>
+      <strong>You made it mahal! 💖</strong><br><br>
+      Your wait is over! Let's make this official. 🥰<br>
+      Please behave.<br>
+      Now, it's my turn to wait.<br><br>
+      I love you. 💖
+    </div>
+  </div>
+</div>
+
+<div id="controls">
+  <div></div>
+  <button onclick="move(0,-1)">↑</button>
+  <div></div>
+  <button onclick="move(-1,0)">←</button>
+  <div></div>
+  <button onclick="move(1,0)">→</button>
+  <div></div>
+  <button onclick="move(0,1)">↓</button>
+  <div></div>
+</div>
+
+<script>
+  const canvas = document.getElementById('maze');
+  const ctx = canvas.getContext('2d');
+  const message = document.getElementById('message');
+
+  const tile = 30;
+  const maze = [
+    '##########',
+    '#S     # #',
+    '# ### ### #',
+    '#   #     #',
+    '### ##### #',
+    '#     #   #',
+    '# ### ### #',
+    '#   #   #E#',
+    '##########'
+  ];
+
+  let player = { x: 1, y: 1 };
+
+  function draw() {
+    ctx.clearRect(0,0,300,300);
+
+    // floating hearts
+    for (let h of hearts) {
+      ctx.fillStyle = 'rgba(255,105,180,0.6)';
+      ctx.fillText('❤', h.x, h.y);
+      h.y -= 0.3;
+      if (h.y < -10) h.y = 310;
+    }
+
+    for (let y=0; y<maze.length; y++) {
+      for (let x=0; x<maze[y].length; x++) {
+        if (maze[y][x] === '#') {
+          ctx.fillStyle = 'white';
+          ctx.fillRect(x*tile, y*tile, tile, tile);
+        }
+        if (maze[y][x] === 'E') {
+          ctx.fillStyle = 'white';
+          ctx.beginPath();
+          ctx.arc(x*tile+15, y*tile+15, 10, 0, Math.PI*2);
+          ctx.fill();
+        }
+      }
+    }
+
+    // brown bear
+    ctx.fillStyle = '#8B4513';
+    ctx.beginPath();
+    ctx.arc(player.x*tile+15, player.y*tile+15, 10, 0, Math.PI*2);
+    ctx.fill();
+  }
+
+  function move(dx,dy) {
+    const nx = player.x + dx;
+    const ny = player.y + dy;
+    if (maze[ny][nx] !== '#') {
+      player.x = nx;
+      player.y = ny;
+      if (maze[ny][nx] === 'E') complete();
+    }
+    draw();
+  }
+
+  function complete() {
+    message.style.display = 'flex';
+  }
+
+  const hearts = Array.from({length: 15}, () => ({
+    x: Math.random()*300,
+    y: Math.random()*300
+  }));
+
+  ctx.font = '14px serif';
+  draw();
+</script>
+
+</body>
+</html>
