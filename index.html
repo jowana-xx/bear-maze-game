@@ -6,113 +6,96 @@
 <title>Bear Maze</title>
 
 <style>
-  * { margin:0; padding:0; box-sizing:border-box; touch-action: manipulation; }
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  touch-action: manipulation;
+}
 
-  html, body {
-    width: 100%;
-    height: 100%;
-    overflow: hidden;
-    background: black;
-    font-family: system-ui, sans-serif;
-  }
+html, body {
+  width: 100%;
+  height: 100%;
+  background: black;
+  overflow: hidden;
+  font-family: system-ui, sans-serif;
+}
 
-  #game-wrapper {
-    position: relative;
-    width: 100%;
-    height: 100%;
-  }
+#game-wrapper {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
 
-  canvas {
-    display: block;
-    margin: auto;
-  }
+#game-container {
+  position: relative;
+  width: min(90vw, 420px);
+  aspect-ratio: 9 / 16;
+  border: 2px solid white;
+}
 
-  #message, #start-overlay {
-    position: fixed;
-    top:0; left:0;
-    width: 100vw;
-    height: 100vh;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    text-align: center;
-    background: rgba(0,0,0,0.85);
-    font-size: 18px;
-    line-height: 1.5;
-    z-index: 100;
-    flex-direction: column;
-    color: white;
-  }
+canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
 
-  #message { display: none; }
-  #start-overlay { cursor: pointer; color: hotpink; font-size: 24px; }
+#message, #start-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,0.85);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  flex-direction: column;
+  color: white;
+  z-index: 10;
+}
 
-  #controls {
-    position: fixed;
-    bottom: 30px;
-    left: 50%;
-    transform: translateX(-50%);
-    display: grid;
-    grid-template-columns: repeat(3, 60px);
-    grid-template-rows: repeat(3, 60px);
-    gap: 6px;
-    z-index: 50;
-  }
-
-  #controls div { width: 60px; height: 60px; }
-
-  button {
-    font-size: 20px;
-    background: #222;
-    color: white;
-    border: 1px solid white;
-    border-radius: 8px;
-  }
-
-  button:active { background: #444; }
+#message { display: none; }
+#start-overlay {
+  cursor: pointer;
+  font-size: 24px;
+  color: hotpink;
+}
 </style>
 </head>
 <body>
 
 <div id="game-wrapper">
-  <canvas id="maze"></canvas>
+  <div id="game-container">
+    <canvas id="maze"></canvas>
 
-  <div id="message">
-    <div>
-      <strong>You made it mahal! 💖</strong><br><br>
-      Your wait is over! Let's make this official. 🥰<br>
-      Now, it's my turn to wait.<br><br>
-      Behave ka lang d'yan, please.<br><br>
-      I love you. 💖
+    <div id="message">
+      <div>
+        <strong>You made it mahal! 💖</strong><br><br>
+        Your wait is over! Let's make this official. 🥰<br>
+        Now, it's my turn to wait.<br><br>
+        Behave ka lang d'yan, please.<br><br>
+        I love you. 💖
+      </div>
     </div>
-  </div>
 
-  <div id="start-overlay">
-    Tap to Start
+    <div id="start-overlay">Tap to Start</div>
   </div>
-</div>
-
-<div id="controls">
-  <div></div>
-  <button onclick="move(0,-1)">↑</button>
-  <div></div>
-  <button onclick="move(-1,0)">←</button>
-  <div></div>
-  <button onclick="move(1,0)">→</button>
-  <div></div>
-  <button onclick="move(0,1)">↓</button>
-  <div></div>
 </div>
 
 <script>
 const canvas = document.getElementById('maze');
 const ctx = canvas.getContext('2d');
 const message = document.getElementById('message');
-const controls = document.getElementById('controls');
 const startOverlay = document.getElementById('start-overlay');
 
 let soundStarted = false;
 let completed = false;
+
+// layout zones
+let width, height;
+let mazeHeight;
+let controlHeight;
 
 // sounds
 const heartbeat = new Audio('heartbeat.mp3');
@@ -123,40 +106,47 @@ const loveSound = new Audio('love.mp3');
 loveSound.loop = true;
 loveSound.volume = 0.6;
 
-// resize maze dynamically
+// resize
 function resizeCanvas() {
-  const size = Math.min(window.innerWidth, window.innerHeight) * 0.6;
-  canvas.width = size;
-  canvas.height = size;
+  const rect = canvas.getBoundingClientRect();
+  canvas.width = rect.width;
+  canvas.height = rect.height;
+
+  width = canvas.width;
+  height = canvas.height;
+
+  controlHeight = height * 0.28;
+  mazeHeight = height - controlHeight;
 }
 window.addEventListener('resize', resizeCanvas);
 resizeCanvas();
 
-const tile = 30;
+// maze
 const maze = [
   '##########',
   '#S     # #',
   '# ### ### #',
-  '#   #     #',
+  '    #     #',
   '### ##### #',
   '#     #   #',
   '# ### ### #',
-  '#   #   ##',
-  '# # # #   ',
-  '#########E'
+  '    #   ##',
+  '### # #   ',
+  '# #######E'
 ];
+
 let player = { x: 1, y: 1 };
 
-// floating hearts
+// hearts (inside canvas only)
 let hearts = [];
 function initHearts() {
   hearts = [];
-  const numHearts = Math.floor((window.innerWidth * window.innerHeight) / 5000);
-  for (let i = 0; i < numHearts; i++) {
+  const count = Math.floor((width * height) / 9000);
+  for (let i = 0; i < count; i++) {
     hearts.push({
-      x: Math.random() * window.innerWidth,
-      y: Math.random() * window.innerHeight,
-      speed: 0.5 + Math.random() * 1.5
+      x: Math.random() * width,
+      y: Math.random() * height,
+      speed: 0.4 + Math.random()
     });
   }
 }
@@ -166,38 +156,89 @@ window.addEventListener('resize', initHearts);
 function drawHearts() {
   ctx.font = '16px serif';
   ctx.fillStyle = 'rgba(255,105,180,0.6)';
-  for (let h of hearts) {
+  hearts.forEach(h => {
     ctx.fillText('♥️', h.x, h.y);
     h.y -= h.speed;
-    if (h.y < -10) {
-      h.y = window.innerHeight + 10;
-      h.x = Math.random() * window.innerWidth;
+    if (h.y < 0) {
+      h.y = height;
+      h.x = Math.random() * width;
     }
-  }
+  });
 }
 
+// maze drawing
 function drawMaze() {
-  const cellSize = canvas.width / maze[0].length;
-  for (let y = 0; y < maze.length; y++) {
-    for (let x = 0; x < maze[y].length; x++) {
+  const rows = maze.length;
+  const cols = maze[0].length;
+  const cell = Math.min(width / cols, mazeHeight / rows);
+
+  for (let y = 0; y < rows; y++) {
+    for (let x = 0; x < cols; x++) {
+      const cx = x * cell;
+      const cy = y * cell;
+
       if (maze[y][x] === '#') {
         ctx.fillStyle = 'white';
-        ctx.fillRect(x * cellSize, y * cellSize, cellSize, cellSize);
+        ctx.fillRect(cx, cy, cell, cell);
       }
       if (maze[y][x] === 'E') {
-        ctx.font = `${cellSize}px serif`;
-        ctx.fillText('🐻‍❄️', x * cellSize + cellSize*0.1, y * cellSize + cellSize*0.9);
+        ctx.font = `${cell}px serif`;
+        ctx.fillText('🐻‍❄️', cx + cell * 0.1, cy + cell * 0.9);
       }
     }
   }
-  ctx.font = `${canvas.width/maze[0].length}px serif`;
-  ctx.fillText('🐻', player.x * (canvas.width/maze[0].length) + canvas.width/maze[0].length*0.1, player.y * (canvas.width/maze[0].length) + canvas.width/maze[0].length*0.9);
+
+  ctx.font = `${cell}px serif`;
+  ctx.fillText('🐻',
+    player.x * cell + cell * 0.1,
+    player.y * cell + cell * 0.9
+  );
+}
+
+// controls (drawn)
+function drawControls() {
+  const size = 50;
+  const gap = 12;
+  const centerX = width / 2;
+  const baseY = mazeHeight + controlHeight / 2;
+
+  const buttons = [
+    { x: centerX, y: baseY - size - gap, dx: 0, dy: -1, label: '↑' },
+    { x: centerX - size - gap, y: baseY, dx: -1, dy: 0, label: '←' },
+    { x: centerX + size + gap, y: baseY, dx: 1, dy: 0, label: '→' },
+    { x: centerX, y: baseY + size + gap, dx: 0, dy: 1, label: '↓' }
+  ];
+
+  buttons.forEach(b => {
+    ctx.strokeStyle = 'white';
+    ctx.strokeRect(b.x - size/2, b.y - size/2, size, size);
+    ctx.fillStyle = 'white';
+    ctx.font = '24px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(b.label, b.x, b.y);
+  });
+
+  canvas.onclick = e => {
+    const r = canvas.getBoundingClientRect();
+    const mx = e.clientX - r.left;
+    const my = e.clientY - r.top;
+    buttons.forEach(b => {
+      if (
+        mx > b.x - size/2 && mx < b.x + size/2 &&
+        my > b.y - size/2 && my < b.y + size/2
+      ) move(b.dx, b.dy);
+    });
+  };
 }
 
 function draw() {
-  ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
+  ctx.clearRect(0, 0, width, height);
   drawHearts();
-  if (!completed) drawMaze();
+  if (!completed) {
+    drawMaze();
+    drawControls();
+  }
   requestAnimationFrame(draw);
 }
 draw();
@@ -215,18 +256,17 @@ function move(dx, dy) {
 
 function complete() {
   completed = true;
-  heartbeat.pause(); heartbeat.currentTime = 0;
+  heartbeat.pause();
   loveSound.play().catch(()=>{});
-  if (navigator.vibrate) navigator.vibrate([200,100,200]);
+  navigator.vibrate?.([200,100,200]);
   message.style.display = 'flex';
-  controls.style.display = 'none';
 }
 
-startOverlay.addEventListener('click', () => {
+startOverlay.onclick = () => {
   heartbeat.play().catch(()=>{});
   soundStarted = true;
   startOverlay.style.display = 'none';
-});
+};
 </script>
 
 </body>
