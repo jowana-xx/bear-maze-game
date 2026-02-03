@@ -34,10 +34,10 @@
       border: 2px solid white;
     }
 
-    #message {
+    #message, #start-overlay {
       position: absolute;
       inset: 0;
-      display: none;
+      display: flex;
       align-items: center;
       justify-content: center;
       text-align: center;
@@ -46,6 +46,15 @@
       font-size: 16px;
       line-height: 1.5;
       z-index: 10;
+    }
+
+    #message { display: none; }
+
+    #start-overlay {
+      cursor: pointer;
+      font-size: 18px;
+      color: hotpink;
+      flex-direction: column;
     }
 
     #controls {
@@ -84,6 +93,10 @@
       I love you. 💖
     </div>
   </div>
+
+  <div id="start-overlay">
+    Tap to Start
+  </div>
 </div>
 
 <div id="controls">
@@ -103,6 +116,7 @@
   const ctx = canvas.getContext('2d');
   const message = document.getElementById('message');
   const controls = document.getElementById('controls');
+  const startOverlay = document.getElementById('start-overlay');
 
   // sounds
   const heartbeat = new Audio('heartbeat.mp3');
@@ -128,7 +142,7 @@
     '# ### ### #',
     '#   #   ##',
     '### # #   ',
-    '#########E'
+    '# #######E'
   ];
 
   let player = { x: 1, y: 1 };
@@ -139,23 +153,15 @@
     speed: 0.3 + Math.random() * 0.7
   }));
 
-  // try autoplay immediately
-  heartbeat.play().then(() => {
-    soundStarted = true;
-  }).catch(() => {
-    // will start on first user interaction
-  });
-
   function draw() {
     ctx.clearRect(0, 0, 300, 300);
 
-    // floating hearts (always visible)
+    // floating hearts
     ctx.font = '14px serif';
     ctx.fillStyle = 'rgba(255,105,180,0.6)';
     for (let h of hearts) {
       ctx.fillText('♥️', h.x, h.y);
       h.y -= h.speed;
-
       if (h.y < -10) {
         h.y = 310;
         h.x = Math.random() * 300;
@@ -171,7 +177,6 @@
           ctx.fillStyle = 'white';
           ctx.fillRect(x * tile, y * tile, tile, tile);
         }
-
         if (maze[y][x] === 'E') {
           ctx.font = '20px serif';
           ctx.fillText('🐻‍❄️', x * tile + 4, y * tile + 22);
@@ -185,13 +190,7 @@
   }
 
   function move(dx, dy) {
-    if (completed) return;
-
-    // fallback sound start
-    if (!soundStarted) {
-      heartbeat.play().catch(() => {});
-      soundStarted = true;
-    }
+    if (!soundStarted || completed) return;
 
     const nx = player.x + dx;
     const ny = player.y + dy;
@@ -214,6 +213,11 @@
 
     loveSound.play().catch(() => {});
 
+    // vibrate device if supported
+    if (navigator.vibrate) {
+      navigator.vibrate([200, 100, 200]);
+    }
+
     message.style.display = 'flex';
     controls.style.display = 'none';
   }
@@ -224,6 +228,13 @@
   }
 
   loop();
+
+  // START overlay click
+  startOverlay.addEventListener('click', () => {
+    heartbeat.play().catch(() => {});
+    soundStarted = true;
+    startOverlay.style.display = 'none';
+  });
 </script>
 
 </body>
