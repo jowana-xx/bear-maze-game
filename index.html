@@ -66,8 +66,8 @@
     <div>
       <strong>You made it mahal! 💖</strong><br><br>
       Your wait is over! Let's make this official. 🥰<br>
-      Please behave.<br>
-      Now, it's my turn to wait.<br><br>
+      Now, it's my turn to wait.<br>
+      Please behave.<br><br>
       I love you. 💖
     </div>
   </div>
@@ -99,46 +99,52 @@
     '### ##### #',
     '#     #   #',
     '# ### ### #',
-    '#   #   #E#',
-    '##########'
+    '#   #   #E#'
   ];
 
   let player = { x: 1, y: 1 };
 
-  function draw() {
-    ctx.clearRect(0,0,300,300);
+  const hearts = Array.from({ length: 20 }, () => ({
+    x: Math.random() * 300,
+    y: Math.random() * 300,
+    speed: 0.3 + Math.random() * 0.7
+  }));
 
-    // floating hearts
+  function draw() {
+    ctx.clearRect(0, 0, 300, 300);
+
+    // hearts animation
+    ctx.font = '14px serif';
+    ctx.fillStyle = 'rgba(255,105,180,0.6)';
     for (let h of hearts) {
-      ctx.fillStyle = 'rgba(255,105,180,0.6)';
-      ctx.fillText('❤', h.x, h.y);
-      h.y -= 0.3;
-      if (h.y < -10) h.y = 310;
+      ctx.fillText('💖', h.x, h.y);
+      h.y -= h.speed;
+      if (h.y < -10) {
+        h.y = 310;
+        h.x = Math.random() * 300;
+      }
     }
 
-    for (let y=0; y<maze.length; y++) {
-      for (let x=0; x<maze[y].length; x++) {
+    // maze
+    for (let y = 0; y < maze.length; y++) {
+      for (let x = 0; x < maze[y].length; x++) {
         if (maze[y][x] === '#') {
           ctx.fillStyle = 'white';
-          ctx.fillRect(x*tile, y*tile, tile, tile);
+          ctx.fillRect(x * tile, y * tile, tile, tile);
         }
         if (maze[y][x] === 'E') {
-          ctx.fillStyle = 'white';
-          ctx.beginPath();
-          ctx.arc(x*tile+15, y*tile+15, 10, 0, Math.PI*2);
-          ctx.fill();
+          ctx.font = '20px serif';
+          ctx.fillText('🐻‍❄️', x * tile + 4, y * tile + 22);
         }
       }
     }
 
-    // brown bear
-    ctx.fillStyle = '#8B4513';
-    ctx.beginPath();
-    ctx.arc(player.x*tile+15, player.y*tile+15, 10, 0, Math.PI*2);
-    ctx.fill();
+    // brown bear player
+    ctx.font = '20px serif';
+    ctx.fillText('🐻', player.x * tile + 4, player.y * tile + 22);
   }
 
-  function move(dx,dy) {
+  function move(dx, dy) {
     const nx = player.x + dx;
     const ny = player.y + dy;
     if (maze[ny][nx] !== '#') {
@@ -146,22 +152,19 @@
       player.y = ny;
       if (maze[ny][nx] === 'E') complete();
     }
-    draw();
   }
 
   function complete() {
     message.style.display = 'flex';
   }
 
-  const hearts = Array.from({length: 15}, () => ({
-    x: Math.random()*300,
-    y: Math.random()*300
-  }));
+  function loop() {
+    draw();
+    requestAnimationFrame(loop);
+  }
 
-  ctx.font = '14px serif';
-  draw();
+  loop();
 </script>
 
 </body>
 </html>
-
