@@ -6,14 +6,13 @@
 <title>Bear Maze</title>
 
 <style>
-  * { touch-action: manipulation; margin:0; padding:0; box-sizing:border-box; }
+  * { margin:0; padding:0; box-sizing:border-box; touch-action: manipulation; }
 
-  body, html {
+  html, body {
     width: 100%;
     height: 100%;
     overflow: hidden;
     background: black;
-    color: white;
     font-family: system-ui, sans-serif;
   }
 
@@ -21,20 +20,16 @@
     position: relative;
     width: 100%;
     height: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
   }
 
   canvas {
-    background: black;
-    border: 2px solid white;
+    display: block;
+    margin: auto;
   }
 
   #message, #start-overlay {
     position: fixed;
-    top: 0;
-    left: 0;
+    top:0; left:0;
     width: 100vw;
     height: 100vh;
     display: flex;
@@ -42,31 +37,29 @@
     justify-content: center;
     text-align: center;
     background: rgba(0,0,0,0.85);
-    font-size: 16px;
+    font-size: 18px;
     line-height: 1.5;
     z-index: 100;
     flex-direction: column;
+    color: white;
   }
 
   #message { display: none; }
-
-  #start-overlay {
-    cursor: pointer;
-    font-size: 24px;
-    color: hotpink;
-  }
+  #start-overlay { cursor: pointer; color: hotpink; font-size: 24px; }
 
   #controls {
     position: fixed;
-    bottom: 20px;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%);
     display: grid;
     grid-template-columns: repeat(3, 60px);
     grid-template-rows: repeat(3, 60px);
     gap: 6px;
-    left: 50%;
-    transform: translateX(-50%);
     z-index: 50;
   }
+
+  #controls div { width: 60px; height: 60px; }
 
   button {
     font-size: 20px;
@@ -79,7 +72,6 @@
   button:active { background: #444; }
 </style>
 </head>
-
 <body>
 
 <div id="game-wrapper">
@@ -113,144 +105,128 @@
 </div>
 
 <script>
-  const canvas = document.getElementById('maze');
-  const ctx = canvas.getContext('2d');
-  const message = document.getElementById('message');
-  const controls = document.getElementById('controls');
-  const startOverlay = document.getElementById('start-overlay');
+const canvas = document.getElementById('maze');
+const ctx = canvas.getContext('2d');
+const message = document.getElementById('message');
+const controls = document.getElementById('controls');
+const startOverlay = document.getElementById('start-overlay');
 
-  let soundStarted = false;
-  let completed = false;
+let soundStarted = false;
+let completed = false;
 
-  // dynamically size canvas
-  function resizeCanvas() {
-    const size = Math.min(window.innerWidth, window.innerHeight) * 0.8;
-    canvas.width = size;
-    canvas.height = size;
+// sounds
+const heartbeat = new Audio('heartbeat.mp3');
+heartbeat.loop = true;
+heartbeat.volume = 0.5;
+
+const loveSound = new Audio('love.mp3');
+loveSound.loop = true;
+loveSound.volume = 0.6;
+
+// resize maze dynamically
+function resizeCanvas() {
+  const size = Math.min(window.innerWidth, window.innerHeight) * 0.6;
+  canvas.width = size;
+  canvas.height = size;
+}
+window.addEventListener('resize', resizeCanvas);
+resizeCanvas();
+
+const tile = 30;
+const maze = [
+  '##########',
+  '#S     # #',
+  '# ### ### #',
+  '#   #     #',
+  '### ##### #',
+  '#     #   #',
+  '# ### ### #',
+  '#   #   ##',
+  '# # # #   ',
+  '#########E'
+];
+let player = { x: 1, y: 1 };
+
+// floating hearts
+let hearts = [];
+function initHearts() {
+  hearts = [];
+  const numHearts = Math.floor((window.innerWidth * window.innerHeight) / 5000);
+  for (let i = 0; i < numHearts; i++) {
+    hearts.push({
+      x: Math.random() * window.innerWidth,
+      y: Math.random() * window.innerHeight,
+      speed: 0.5 + Math.random() * 1.5
+    });
   }
+}
+initHearts();
+window.addEventListener('resize', initHearts);
 
-  window.addEventListener('resize', resizeCanvas);
-  resizeCanvas();
-
-  const tile = 30;
-
-  const maze = [
-    '##########',
-    '#S     # #',
-    '# ### ### #',
-    '#   #     #',
-    '### ##### #',
-    '#     #   #',
-    '# ### ### #',
-    '#   #   ##',
-    '# # # #   ',
-    '#########E'
-  ];
-
-  let player = { x: 1, y: 1 };
-
-  // sounds
-  const heartbeat = new Audio('heartbeat.mp3');
-  heartbeat.loop = true;
-  heartbeat.volume = 0.5;
-
-  const loveSound = new Audio('love.mp3');
-  loveSound.loop = true;
-  loveSound.volume = 0.6;
-
-  // hearts floating across full screen
-  const hearts = [];
-  function initHearts() {
-    hearts.length = 0;
-    const numHearts = Math.floor((window.innerWidth * window.innerHeight) / 6000); // density based
-    for (let i = 0; i < numHearts; i++) {
-      hearts.push({
-        x: Math.random() * window.innerWidth,
-        y: Math.random() * window.innerHeight,
-        speed: 0.5 + Math.random() * 1.5
-      });
+function drawHearts() {
+  ctx.font = '16px serif';
+  ctx.fillStyle = 'rgba(255,105,180,0.6)';
+  for (let h of hearts) {
+    ctx.fillText('♥️', h.x, h.y);
+    h.y -= h.speed;
+    if (h.y < -10) {
+      h.y = window.innerHeight + 10;
+      h.x = Math.random() * window.innerWidth;
     }
   }
-  initHearts();
-  window.addEventListener('resize', initHearts);
+}
 
-  function drawHearts() {
-    ctx.font = '16px serif';
-    ctx.fillStyle = 'rgba(255,105,180,0.6)';
-    for (let h of hearts) {
-      ctx.fillText('♥️', h.x, h.y);
-      h.y -= h.speed;
-      if (h.y < -10) {
-        h.y = window.innerHeight + 10;
-        h.x = Math.random() * window.innerWidth;
+function drawMaze() {
+  const cellSize = canvas.width / maze[0].length;
+  for (let y = 0; y < maze.length; y++) {
+    for (let x = 0; x < maze[y].length; x++) {
+      if (maze[y][x] === '#') {
+        ctx.fillStyle = 'white';
+        ctx.fillRect(x * cellSize, y * cellSize, cellSize, cellSize);
+      }
+      if (maze[y][x] === 'E') {
+        ctx.font = `${cellSize}px serif`;
+        ctx.fillText('🐻‍❄️', x * cellSize + cellSize*0.1, y * cellSize + cellSize*0.9);
       }
     }
   }
+  ctx.font = `${canvas.width/maze[0].length}px serif`;
+  ctx.fillText('🐻', player.x * (canvas.width/maze[0].length) + canvas.width/maze[0].length*0.1, player.y * (canvas.width/maze[0].length) + canvas.width/maze[0].length*0.9);
+}
 
-  function drawMaze() {
-    const cellSize = canvas.width / maze[0].length;
-    for (let y = 0; y < maze.length; y++) {
-      for (let x = 0; x < maze[y].length; x++) {
-        if (maze[y][x] === '#') {
-          ctx.fillStyle = 'white';
-          ctx.fillRect(x * cellSize, y * cellSize, cellSize, cellSize);
-        }
-        if (maze[y][x] === 'E') {
-          ctx.font = `${cellSize}px serif`;
-          ctx.fillText('🐻‍❄️', x * cellSize + cellSize * 0.1, y * cellSize + cellSize * 0.9);
-        }
-      }
-    }
+function draw() {
+  ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
+  drawHearts();
+  if (!completed) drawMaze();
+  requestAnimationFrame(draw);
+}
+draw();
 
-    // brown bear
-    ctx.font = `${cellSize}px serif`;
-    ctx.fillText('🐻', player.x * cellSize + cellSize * 0.1, player.y * cellSize + cellSize * 0.9);
+function move(dx, dy) {
+  if (!soundStarted || completed) return;
+  const nx = player.x + dx;
+  const ny = player.y + dy;
+  if (maze[ny] && maze[ny][nx] !== '#') {
+    player.x = nx;
+    player.y = ny;
+    if (maze[ny][nx] === 'E') complete();
   }
+}
 
-  function draw() {
-    ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
-    drawHearts();
-    if (!completed) drawMaze();
-    requestAnimationFrame(draw);
-  }
+function complete() {
+  completed = true;
+  heartbeat.pause(); heartbeat.currentTime = 0;
+  loveSound.play().catch(()=>{});
+  if (navigator.vibrate) navigator.vibrate([200,100,200]);
+  message.style.display = 'flex';
+  controls.style.display = 'none';
+}
 
-  draw();
-
-  function move(dx, dy) {
-    if (!soundStarted || completed) return;
-
-    const nx = player.x + dx;
-    const ny = player.y + dy;
-
-    if (maze[ny] && maze[ny][nx] !== '#') {
-      player.x = nx;
-      player.y = ny;
-
-      if (maze[ny][nx] === 'E') {
-        complete();
-      }
-    }
-  }
-
-  function complete() {
-    completed = true;
-
-    heartbeat.pause();
-    heartbeat.currentTime = 0;
-    loveSound.play().catch(() => {});
-
-    // vibrate on mobile
-    if (navigator.vibrate) navigator.vibrate([200,100,200]);
-
-    message.style.display = 'flex';
-    controls.style.display = 'none';
-  }
-
-  startOverlay.addEventListener('click', () => {
-    heartbeat.play().catch(() => {});
-    soundStarted = true;
-    startOverlay.style.display = 'none';
-  });
+startOverlay.addEventListener('click', () => {
+  heartbeat.play().catch(()=>{});
+  soundStarted = true;
+  startOverlay.style.display = 'none';
+});
 </script>
 
 </body>
