@@ -56,6 +56,7 @@ canvas {
 }
 
 #message { display: none; }
+
 #start-overlay {
   cursor: pointer;
   font-size: 24px;
@@ -92,10 +93,9 @@ const startOverlay = document.getElementById('start-overlay');
 let soundStarted = false;
 let completed = false;
 
-// layout zones
+// layout
 let width, height;
-let mazeHeight;
-let controlHeight;
+let mazeHeight, controlHeight;
 
 // sounds
 const heartbeat = new Audio('heartbeat.mp3');
@@ -124,20 +124,20 @@ resizeCanvas();
 // maze
 const maze = [
   '##########',
-  '#S     # #',
+  '#S     #  ',
   '# ### ### #',
   '    #     #',
   '### ##### #',
   '#     #   #',
   '# ### ### #',
   '    #   ##',
-  '### # #   ',
+  '# # # #   ',
   '# #######E'
 ];
 
 let player = { x: 1, y: 1 };
 
-// hearts (inside canvas only)
+// hearts (restricted to canvas)
 let hearts = [];
 function initHearts() {
   hearts = [];
@@ -166,12 +166,13 @@ function drawHearts() {
   });
 }
 
-// maze drawing
+// maze drawing (GRID SAFE)
 function drawMaze() {
   const rows = maze.length;
   const cols = maze[0].length;
   const cell = Math.min(width / cols, mazeHeight / rows);
 
+  // walls & exit
   for (let y = 0; y < rows; y++) {
     for (let x = 0; x < cols; x++) {
       const cx = x * cell;
@@ -181,32 +182,39 @@ function drawMaze() {
         ctx.fillStyle = 'white';
         ctx.fillRect(cx, cy, cell, cell);
       }
+
       if (maze[y][x] === 'E') {
-        ctx.font = `${cell}px serif`;
-        ctx.fillText('🐻‍❄️', cx + cell * 0.1, cy + cell * 0.9);
+        ctx.font = `${cell * 0.9}px serif`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('🐻‍❄️', cx + cell / 2, cy + cell / 2);
       }
     }
   }
 
-  ctx.font = `${cell}px serif`;
-  ctx.fillText('🐻',
-    player.x * cell + cell * 0.1,
-    player.y * cell + cell * 0.9
+  // player (FIXED: perfectly centered)
+  ctx.font = `${cell * 0.9}px serif`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(
+    '🐻',
+    player.x * cell + cell / 2,
+    player.y * cell + cell / 2
   );
 }
 
-// controls (drawn)
+// controls
 function drawControls() {
   const size = 50;
   const gap = 12;
   const centerX = width / 2;
-  const baseY = mazeHeight + controlHeight / 2;
+  const centerY = mazeHeight + controlHeight / 2;
 
   const buttons = [
-    { x: centerX, y: baseY - size - gap, dx: 0, dy: -1, label: '↑' },
-    { x: centerX - size - gap, y: baseY, dx: -1, dy: 0, label: '←' },
-    { x: centerX + size + gap, y: baseY, dx: 1, dy: 0, label: '→' },
-    { x: centerX, y: baseY + size + gap, dx: 0, dy: 1, label: '↓' }
+    { x: centerX, y: centerY - size - gap, dx: 0, dy: -1, label: '↑' },
+    { x: centerX - size - gap, y: centerY, dx: -1, dy: 0, label: '←' },
+    { x: centerX + size + gap, y: centerY, dx: 1, dy: 0, label: '→' },
+    { x: centerX, y: centerY + size + gap, dx: 0, dy: 1, label: '↓' }
   ];
 
   buttons.forEach(b => {
