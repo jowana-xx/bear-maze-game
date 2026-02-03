@@ -104,11 +104,17 @@
   const message = document.getElementById('message');
   const controls = document.getElementById('controls');
 
-  // background sound
-  const bgSound = new Audio('heartbeat.mp3');
-  bgSound.loop = true;
-  bgSound.volume = 0.5;
+  // sounds
+  const heartbeat = new Audio('heartbeat.mp3');
+  heartbeat.loop = true;
+  heartbeat.volume = 0.5;
+
+  const loveSound = new Audio('love.mp3');
+  loveSound.loop = true;
+  loveSound.volume = 0.6;
+
   let soundStarted = false;
+  let completed = false;
 
   const tile = 30;
 
@@ -127,16 +133,23 @@
 
   let player = { x: 1, y: 1 };
 
-  const hearts = Array.from({ length: 20 }, () => ({
+  const hearts = Array.from({ length: 22 }, () => ({
     x: Math.random() * 300,
     y: Math.random() * 300,
     speed: 0.3 + Math.random() * 0.7
   }));
 
+  // try autoplay immediately
+  heartbeat.play().then(() => {
+    soundStarted = true;
+  }).catch(() => {
+    // will start on first user interaction
+  });
+
   function draw() {
     ctx.clearRect(0, 0, 300, 300);
 
-    // floating hearts
+    // floating hearts (always visible)
     ctx.font = '14px serif';
     ctx.fillStyle = 'rgba(255,105,180,0.6)';
     for (let h of hearts) {
@@ -149,7 +162,9 @@
       }
     }
 
-    // draw maze
+    if (completed) return;
+
+    // maze
     for (let y = 0; y < maze.length; y++) {
       for (let x = 0; x < maze[y].length; x++) {
         if (maze[y][x] === '#') {
@@ -170,9 +185,11 @@
   }
 
   function move(dx, dy) {
-    // start sound on first interaction
+    if (completed) return;
+
+    // fallback sound start
     if (!soundStarted) {
-      bgSound.play().catch(() => {});
+      heartbeat.play().catch(() => {});
       soundStarted = true;
     }
 
@@ -184,13 +201,19 @@
       player.y = ny;
 
       if (maze[ny][nx] === 'E') {
-        bgSound.pause();
         complete();
       }
     }
   }
 
   function complete() {
+    completed = true;
+
+    heartbeat.pause();
+    heartbeat.currentTime = 0;
+
+    loveSound.play().catch(() => {});
+
     message.style.display = 'flex';
     controls.style.display = 'none';
   }
